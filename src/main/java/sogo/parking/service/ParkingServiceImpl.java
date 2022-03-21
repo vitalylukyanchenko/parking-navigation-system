@@ -120,6 +120,7 @@ public class ParkingServiceImpl implements ParkingService {
 			return "Car is already on the parking. One car can't ocupy more then 1 place";
 		}
 		Space space = getNextFreeSpace(id);
+		LOG.debug(space.getNavigationInstructions().toString());
 		return String.format("Welcome. Your space is %s", space.getId());
 	}
 
