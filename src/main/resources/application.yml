@@ -1,0 +1,6 @@
+logging:
+  level:
+    '[sogo.parking]': debug
+app:
+  parking:
+    parkingConfigurationFileName: parkingConfiguration.json

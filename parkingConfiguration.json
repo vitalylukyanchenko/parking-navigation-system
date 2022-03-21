@@ -1,0 +1,40 @@
+{
+  "gate": [
+    {
+	  "direction" : "left";
+	  "spaces" : ["A1", "A2", "A3"]
+    },
+	{
+	  "direction" : "right";
+	  "spaces" : ["A4", "A5", "A6"]
+	},
+	{
+	  "direction" : "forward";
+	  "junction" : "J1";
+	  "details" : [
+	    {
+	      "direction" : "left";
+	      "spaces" : ["B1", "B2", "B3"]
+        },
+	    {
+	      "direction" : "right";
+	      "spaces" : ["B4", "B5", "B6"]
+	    },
+	    {
+	      "direction" : "forward";
+		  "junction" : "J2";
+		  "details" :[
+		    {
+	          "direction" : "left";
+	          "spaces" : ["C1", "C2", "C3"]
+            },
+	        {
+	          "direction" : "right";
+	          "spaces" : ["C4", "C5", "C6"]
+	        }
+		  ]
+	    }
+	  ]
+	}
+  ]
+}
