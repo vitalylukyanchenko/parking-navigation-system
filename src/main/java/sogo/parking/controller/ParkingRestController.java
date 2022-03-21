@@ -1,4 +1,4 @@
-package sogo.parking.api.controller;
+package sogo.parking.controller;
 
 import static sogo.parking.api.ApiConstants.*;
 

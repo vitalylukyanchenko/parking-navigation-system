@@ -131,7 +131,7 @@ public class ParkingServiceImpl implements ParkingService {
 		Space reservedSpace = spacesByCar.get(carId);
 		String navInstruction = reservedSpace.getNavigationInstructions().get(junctionId);
 		if (navInstruction == null) {
-			return String.format("screen: %s  - wrong way", junctionId);
+			return String.format("screen: %s - wrong way", junctionId);
 		}
 		return String.format("screen: %s - go %s", junctionId, navInstruction);
 	}

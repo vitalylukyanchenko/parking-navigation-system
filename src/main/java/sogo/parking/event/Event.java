@@ -1,12 +1,10 @@
-package sogo.parking.dto;
+package sogo.parking.event;
 
 public class Event {
 	EventType type;
 	String carId;
 	String junctionId;
 	String spaceId;
-	
-	
 	
 	public EventType getType() {
 		return type;
@@ -39,8 +37,6 @@ public class Event {
 	public void setSpaceId(String spaceId) {
 		this.spaceId = spaceId;
 	}
-
-
 
 	public static Event parse(String str) {
 		Event event = new Event();
