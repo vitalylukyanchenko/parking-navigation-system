@@ -6,8 +6,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.google.gson.Gson;
@@ -22,24 +25,17 @@ import sogo.parking.service.dto.Space;
 
 @Service
 public class ParkingServiceImpl implements ParkingService {
-	static private Logger LOG = LoggerFactory.getLogger(ParkingApplication.class);
+	static private Logger LOG = LoggerFactory.getLogger(ParkingService.class);
+	@Value("${app.parking.parkingConfigurationFileName}")
+	private String fileName;
 	private Map<String, Car> carsOnTheWay = new HashMap<>();
 	private Map<String, Car> parkedCars = new HashMap<>();
 	private TreeMap<LocalDateTime, Car> parkingTimeStamps = new TreeMap<>();
-	private static Map<String, Space> spaces = new HashMap<>();
-	private static List<Space> freeSpaces = new ArrayList<>(); // list of free spaceIds
+	private Map<String, Space> spaces = new HashMap<>();
+	private List<Space> freeSpaces = new ArrayList<>(); // list of free spaceIds
 	private Map<String, Space> spacesByCar = new HashMap<>(); // spaces reserved or occupied by cars
 	
-	public static ParkingService loadParkingConfiguration(File file) throws Exception {
-		String parkingConfigJson = readJSONFromFile(file);
-		JsonElement gateElement = JsonParser.parseString(parkingConfigJson).getAsJsonObject().get("gate");
-		ParkingService parkingService = new ParkingServiceImpl();
-		buildParkingR(gateElement, "gate", new HashMap<String, String>());
-		LOG.debug(spaces.toString());
-		return parkingService;
-	}
-	
-	private static void buildParkingR(JsonElement jsonElement, String junctionName,
+	private void buildParkingR(JsonElement jsonElement, String junctionName,
 			Map<String, String> navigationInstructions) throws Exception {
 		if (jsonElement.isJsonArray()) {
 			JsonArray directions = jsonElement.getAsJsonArray();
@@ -55,7 +51,7 @@ public class ParkingServiceImpl implements ParkingService {
 				} else {
 					JsonElement detailsJsonElement = directions.get(i).getAsJsonObject().get("details");
 					if (detailsJsonElement == null) {
-						throw new Exception("Incorrect parking configuration structure. Every direction"
+						throw new Exception("Incorrect parking configuration structure. Every direction "
 								+ "must contain details or spaces");
 					}
 					buildParkingR(detailsJsonElement, directions.get(i).getAsJsonObject().get("junction").getAsString(),
@@ -65,15 +61,15 @@ public class ParkingServiceImpl implements ParkingService {
 		}
 	}
 
-	private static void addSpace(String spaceId, Map<String, String> navigationInstructions) {
+	private void addSpace(String spaceId, Map<String, String> navigationInstructions) {
 		Space space = new Space(spaceId, new HashMap<>(navigationInstructions));
 		freeSpaces.add(space);
 		spaces.put(spaceId, space);
 	}
 
-	private static String readJSONFromFile(File file) throws IOException {
+	private static String readJSONFromFile(String fileName) throws IOException {
         // Create Buffer reader for the File that is downloaded
-        BufferedReader reader = new BufferedReader(new FileReader(file));
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
         // create StringBuilder object
         StringBuilder stringBuilder = new StringBuilder();
         String line;
@@ -88,15 +84,7 @@ public class ParkingServiceImpl implements ParkingService {
         reader.close();
         return stringBuilder.toString();
     }
-	
-	private Space getReservedSpaceByCar(String carId) throws Exception {
-		Space reservedSpace = spacesByCar.get(carId);
-		if (spacesByCar.get(carId) == null) {
-			throw new Exception("No space reserved for you. Please, go to parking administration");
-		}
-		return reservedSpace;
-	}
- 
+	 
 	private void parkCar(String carId) {
 		Car car = carsOnTheWay.get(carId);
 		car.setFinishParking(LocalDateTime.now());
@@ -111,6 +99,16 @@ public class ParkingServiceImpl implements ParkingService {
 		spacesByCar.put(id, space);
 		carsOnTheWay.put(id, car);
 		return space;
+	}
+		
+	@Override
+	@PostConstruct
+	public void loadParkingConfiguration() throws Exception {
+		String parkingConfigJson = readJSONFromFile(fileName);
+		JsonElement gateElement = JsonParser.parseString(parkingConfigJson).getAsJsonObject().get("gate");
+		ParkingService parkingService = new ParkingServiceImpl();
+		buildParkingR(gateElement, "gate", new HashMap<String, String>());
+		LOG.debug(spaces.toString());
 	}
 	
 	@Override
@@ -127,23 +125,26 @@ public class ParkingServiceImpl implements ParkingService {
 
 	@Override
 	public String displayInstructions(String carId, String junctionId) {
-		Space reservedSpace;
-		try {
-			reservedSpace = getReservedSpaceByCar(carId);
-		} catch (Exception e) {
-			return e.getMessage();
+		if(!carsOnTheWay.containsKey(carId)) {
+			return "No space reserved for you. Please, go to parking administration";
 		}
-		return String.format("screen: %s - go %s", junctionId, reservedSpace.getNavigationInstructions().get(junctionId));
+		Space reservedSpace = spacesByCar.get(carId);
+		String navInstruction = reservedSpace.getNavigationInstructions().get(junctionId);
+		if (navInstruction == null) {
+			return String.format("screen: %s  - wrong way", junctionId);
+		}
+		return String.format("screen: %s - go %s", junctionId, navInstruction);
 	}
 
 	@Override
 	public String park(String carId, String spaceId) {
-		Space reservedSpace;
-		try {
-			reservedSpace = getReservedSpaceByCar(carId);
-		} catch (Exception e) {
-			return e.getMessage();
+		if(!carsOnTheWay.containsKey(carId)) {
+			return "No space reserved for you. Please, go to parking administration";
 		}
+		if (spaces.get(spaceId) == null) {
+			return String.format("Service message. Space %s is not registered on the parking", spaceId);
+		}
+		Space reservedSpace = spacesByCar.get(carId);
 		if (reservedSpace.getId().equals(spaceId)) {
 			parkCar(carId);
 			LOG.debug(parkedCars.toString());
@@ -159,10 +160,9 @@ public class ParkingServiceImpl implements ParkingService {
 				parkingTimeStamps.subMap(LocalDateTime.now().minusSeconds(periodSec), LocalDateTime.now())
 					.values()
 					.stream()
-					.map(car -> (int) ChronoUnit.SECONDS.between(car.getFinishParking(), car.getStartParking()))
+					.map(car -> (int) ChronoUnit.SECONDS.between(car.getStartParking(), car.getFinishParking()))
 					.collect(Collectors.averagingInt(Integer :: intValue))
 			);
-			
 	}
 
 }

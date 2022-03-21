@@ -43,7 +43,6 @@ public class Event {
 
 
 	public static Event parse(String str) {
-		validate(str);
 		Event event = new Event();
 		fillType(str, event);
 		fillCarId(str, event);
@@ -54,11 +53,6 @@ public class Event {
 			fillSpaceId(str, event);
 		}
 		return event;
-	}
-
-	private static void validate(String str) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	private static void fillSpaceId(String str, Event event) {
@@ -79,15 +73,18 @@ public class Event {
 	}
 
 	private static void fillType(String str, Event event) {
-		if (str.contains("reserve")) {
+		if (str.matches("car.+\\.reserve")) {
 			event.type = EventType.RESERVE;
-		} else if (str.contains("gate")) {
+		} else if (str.matches("car.+\\.gate")) {
 			event.type = EventType.ON_GATE;
-		} else if (str.contains("junction")) {
+		} else if (str.matches("car.+\\.junction.+")) {
 			event.type = EventType.ON_JUNCTION;
-		} else {
+		} else if (str.matches("car.+\\.space.+")) {
 			event.type = EventType.ON_SPACE;
+		} else {
+			event.type = EventType.NOT_EVENT;
 		}
+		
 	}
 
 	@Override

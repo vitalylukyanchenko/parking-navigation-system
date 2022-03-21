@@ -10,4 +10,5 @@ public interface ParkingService {
 	String displayInstructions(String carId, String junctionId);
 	String park(String carId, String spaceId);
 	int getAverageParkingTimeSec(int periodSec);
+	void loadParkingConfiguration() throws Exception;
 }
